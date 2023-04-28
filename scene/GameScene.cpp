@@ -2,12 +2,15 @@
 #include "TextureManager.h"
 #include <cassert>
 #include "ImGuiManager.h"
+#include "PrimitiveDrawer.h"
+#include "AxisIndicator.h"
 
 GameScene::GameScene() {}
 
 GameScene::~GameScene() {
 	delete sprite_; 
 	delete model_;
+	delete debugCamera_;
 }
 
 void GameScene::Initialize() {
@@ -30,6 +33,14 @@ void GameScene::Initialize() {
 
 	voiceHandle_ = audio_->PlayWave(soundDataHandle_, true);
 	
+	PrimitiveDrawer::GetInstance()->SetViewProjection(&viewProjection_);
+
+	debugCamera_ = new DebugCamera(WinApp::kWindowWidth, WinApp::kWindowHeight);
+
+	AxisIndicator::GetInstance()->SetVisible(true);
+
+	AxisIndicator::GetInstance()->SetTargetViewProjection(&debugCamera_->GetViewProjection());
+
 }
 
 void GameScene::Update() {
@@ -48,12 +59,16 @@ void GameScene::Update() {
 	ImGui::SliderFloat3("SliderFloat3", inputFloat3, 0.0f, 1.0f);
 	ImGui::ShowDemoWindow();
 	ImGui::End();
+
+	debugCamera_->Update();
 }
 
 void GameScene::Draw() {
 
 	// コマンドリストの取得
 	ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandList();
+
+	PrimitiveDrawer::GetInstance()->DrawLine3d({0, 0, 0}, {0, 10, 0}, {1.0f, 0.0f, 0.0f, 1.0f});
 
 #pragma region 背景スプライト描画
 	// 背景スプライト描画前処理
@@ -78,6 +93,8 @@ void GameScene::Draw() {
 	/// </summary>
 
 	model_->Draw(worldTransform_, viewProjection_, textureHandle_);
+
+	model_->Draw(worldTransform_, debugCamera_->GetViewProjection(), textureHandle_);
 
 	// 3Dオブジェクト描画後処理
 	Model::PostDraw();
