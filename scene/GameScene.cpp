@@ -22,11 +22,15 @@ void GameScene::Initialize() {
 	viewProjection_.Initialize();
 
 	player_ = new Player();
+
 	player_->Initialize(model_,textureHandle_);
+
 }
 
 void GameScene::Update() { 
+
 	player_->Update();
+
 }
 
 void GameScene::Draw() {
@@ -57,6 +61,7 @@ void GameScene::Draw() {
 	/// </summary>
 
 	player_->Draw(viewProjection_);
+
 
 	// 3Dオブジェクト描画後処理
 	Model::PostDraw();
