@@ -3,6 +3,8 @@
 #include "mathUtility.h"
 #include "ImGuiManager.h"
 
+Player::~Player() { delete bullet_; }
+
 void Player::Initialize(Model* model, uint32_t textureHandle) {
 	assert(model);
 	model_ = model;
