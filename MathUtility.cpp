@@ -104,8 +104,10 @@ Matrix4x4 Multiply(Matrix4x4 m1, Matrix4x4 m2) {
 
 Matrix4x4 MakeTranslateMatrix(const Vector3& translate) {
 	Matrix4x4 result = {
-	    1.0f, 0.0f, 0.0f, 0.0f, 0.0f,        1.0f,        0.0f,        0.0f,
-	    0.0f, 0.0f, 1.0f, 0.0f, translate.x, translate.y, translate.z, 1.0f,
+	    1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+	    0.0f, 0.0f, 1.0f, 0.0f, 
+		translate.x, translate.y, translate.z, 1.0f,
 	};
 	return result;
 }
@@ -117,10 +119,20 @@ Matrix4x4 MakeAffineMatrx(const Vector3& scale, const Vector3& rotate, const Vec
 	Matrix4x4 RotateX = MakeRotateXMatrix(rotate.x);
 	Matrix4x4 RotateY = MakeRotateYMatrix(rotate.y);
 	Matrix4x4 RotateZ = MakeRotateZMatrix(rotate.z);
-	Matrix4x4 RotateXYZ = Multiply(RotateX, Multiply(RotateY, RotateZ));
+	Matrix4x4 RotateXYZ = Multiply(RotateZ, Multiply(RotateX, RotateY));
 	Matrix4x4 Translate = MakeTranslateMatrix(translate);
 
 	result = Multiply(Multiply(Scale, RotateXYZ), Translate);
 
 	return result;
+}
+
+Vector3 TransformNormal(const Vector3& v, const Matrix4x4& m) { 
+	Vector3 result = {
+	    v.x * m.m[0][0] + v.y * m.m[1][0] + v.z * m.m[2][0],
+	    v.x * m.m[0][1] + v.y * m.m[1][1] + v.z * m.m[2][1],
+	    v.x * m.m[0][2] + v.y * m.m[1][2] + v.z * m.m[2][2]
+	};
+	
+	return result; 
 }

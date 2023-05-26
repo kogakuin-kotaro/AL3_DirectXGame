@@ -3,6 +3,7 @@
 #include "WorldTransform.h"
 #include "Input.h"
 #include "PlayerBullet.h"
+#include <list>
 
 /// <summary>
 /// 自キャラ
@@ -30,5 +31,5 @@ class Player {
 
 		Input* input_ = nullptr;
 
-	    PlayerBullet* bullet_ = nullptr;
+	    std::list<PlayerBullet*> bullets_;
 };

@@ -1,9 +1,14 @@
 #include "Player.h"
 #include <cassert>
-#include "mathUtility.h"
+#include "MathUtility.h"
 #include "ImGuiManager.h"
 
-Player::~Player() { delete bullet_; }
+
+Player::~Player() {
+	for (PlayerBullet* bullet : bullets_) {
+		delete bullet;
+	}
+}
 
 void Player::Initialize(Model* model, uint32_t textureHandle) {
 	assert(model);
@@ -14,13 +19,22 @@ void Player::Initialize(Model* model, uint32_t textureHandle) {
 };
 
 void Player::Update() { 
-	worldTransform_.TransferMatrix();
+
+	//デスフラグの立った弾を削除
+	bullets_.remove_if([](PlayerBullet* bullet) {
+		if (bullet->IsDead()) {
+			delete bullet;
+			return true;
+		}
+		return false;
+	});
 
 	//キャラクターの移動ベクトル
 	Vector3 move = {0, 0, 0};
 
 	//キャラクターの移動速さ
 	const float kCharacterSpead = 0.2f;
+	worldTransform_.TransferMatrix();
 
 	//押した方向でベクトル変更
 	//左右
@@ -37,6 +51,10 @@ void Player::Update() {
 		move.y -= kCharacterSpead;
 	}
 
+	//座標移動（ベクトルの加算）
+	worldTransform_.translation_ = Add(worldTransform_.translation_, move);
+
+
 	//回転
 	Rotate();
 
@@ -44,8 +62,8 @@ void Player::Update() {
 	Attack();
 
 	//弾更新
-	if (bullet_) {
-		bullet_->Update();
+	for (PlayerBullet* bullet : bullets_) {
+		bullet->Update();
 	}
 
 	//移動制限
@@ -74,8 +92,8 @@ void Player::Draw(ViewProjection& viewProjection) {
 	model_->Draw(worldTransform_, viewProjection, textureHandle_);
 
 	//弾描画
-	if (bullet_) {
-		bullet_->Draw(viewProjection);
+	for (PlayerBullet* bullet : bullets_) {
+		bullet->Draw(viewProjection);
 	}
 }
 
@@ -92,16 +110,14 @@ void Player::Rotate() {
 
 void Player::Attack() { 
 	if (input_->TriggerKey(DIK_SPACE)) {
+		const float kBulletSpeed = 1.0f;
+		Vector3 velocity(0, 0, kBulletSpeed);
 
-		// 弾があれば開放する
-		if (bullet_) {
-			delete bullet_;
-			bullet_ = nullptr;
-		}
+		velocity = TransformNormal(velocity, worldTransform_.matWorld_);
 
 		PlayerBullet* newBullet = new PlayerBullet();
-		newBullet->Initialize(model_, worldTransform_.translation_);
+		newBullet->Initialize(model_, worldTransform_.translation_, velocity);
 
-		bullet_ = newBullet;
+		bullets_.push_back(newBullet);
 	}
 }
