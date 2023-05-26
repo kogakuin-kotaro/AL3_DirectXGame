@@ -92,6 +92,13 @@ void Player::Rotate() {
 
 void Player::Attack() { 
 	if (input_->TriggerKey(DIK_SPACE)) {
+
+		// 弾があれば開放する
+		if (bullet_) {
+			delete bullet_;
+			bullet_ = nullptr;
+		}
+
 		PlayerBullet* newBullet = new PlayerBullet();
 		newBullet->Initialize(model_, worldTransform_.translation_);
 
