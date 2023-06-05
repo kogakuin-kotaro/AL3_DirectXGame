@@ -2,13 +2,11 @@
 #include "Model.h"
 #include "WorldTransform.h"
 
-
 /// <summary>
 /// 自キャラの弾
 /// </summary>
-class PlayerBullet{
+class EnemyBullet {
 public:
-
 	void Initialize(Model* model, Vector3& position, const Vector3& velocity);
 	void Update();
 	void Draw(ViewProjection& viewProjection);
@@ -22,8 +20,8 @@ public:
 
 	const float Range = 1.0f;
 
-private:
 
+private:
 	WorldTransform worldTransform_;
 	Model* model_ = nullptr;
 	uint32_t textureHandle_ = 0u;
