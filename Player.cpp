@@ -79,7 +79,7 @@ void Player::Update() {
 	worldTransform_.UpdateMatrix(); 
 
 	//debug
-	ImGui::Begin("Debug");
+	ImGui::Begin("PlayerDebug");
 	ImGui::SliderFloat("playerX", &worldTransform_.translation_.x, -34.0f, 34.0f);
 	ImGui::SliderFloat("playerY", &worldTransform_.translation_.y, -18.0f, 18.0f);
 	ImGui::SliderFloat("playerZ", &worldTransform_.translation_.z, -20.0f, 20.0f);
@@ -121,3 +121,16 @@ void Player::Attack() {
 		bullets_.push_back(newBullet);
 	}
 }
+
+Vector3 Player::GetWorldPosition() { 
+	Vector3 worldPos;
+
+	worldPos.x = worldTransform_.translation_.x;
+	worldPos.y = worldTransform_.translation_.y;
+	worldPos.z = worldTransform_.translation_.z;
+
+	return worldPos;
+}
+
+void Player::OnCollision() {}
+

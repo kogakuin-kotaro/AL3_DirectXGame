@@ -1,13 +1,13 @@
-#include "PlayerBullet.h"
+#include "EnemyBullet.h"
 #include <cassert>
 #include "MathUtility.h"
 
-void PlayerBullet::Initialize(Model* model, Vector3& position, const Vector3& velocity) {
+void EnemyBullet::Initialize(Model* model, Vector3& position, const Vector3& velocity) {
 	assert(model);
 
 	model_ = model;
 
-	textureHandle_ = TextureManager::Load("white1x1.png");
+	textureHandle_ = TextureManager::Load("sample.png");
 
 	worldTransform_.Initialize();
 	worldTransform_.translation_ = position;
@@ -15,23 +15,23 @@ void PlayerBullet::Initialize(Model* model, Vector3& position, const Vector3& ve
 	velocity_ = velocity;
 }
 
-void PlayerBullet::Update() { 
+void EnemyBullet::Update() {
 	if (--deathTimer_ <= 0) {
 		isDead_ = true;
 	}
 
 	worldTransform_.translation_ = Add(worldTransform_.translation_, velocity_);
 
-	worldTransform_.UpdateMatrix(); 
+	worldTransform_.UpdateMatrix();
 }
 
-void PlayerBullet::Draw(ViewProjection& viewProjection) {
+void EnemyBullet::Draw(ViewProjection& viewProjection) {
 	model_->Draw(worldTransform_, viewProjection, textureHandle_);
 }
 
-void PlayerBullet::OnCollision() { isDead_ = true; }
+void EnemyBullet::OnCollision() { isDead_ = true; }
 
-Vector3 PlayerBullet::GetWorldPosition() {
+Vector3 EnemyBullet::GetWorldPosition() { 
 	Vector3 worldPos;
 
 	worldPos.x = worldTransform_.translation_.x;
