@@ -10,6 +10,7 @@ GameScene::~GameScene() {
 	delete model_;
 	delete player_;
 	delete debugCamera_;
+	delete enemy_;
 }
 
 void GameScene::Initialize() {
@@ -31,6 +32,12 @@ void GameScene::Initialize() {
 
 	AxisIndicator::GetInstance()->SetVisible(true);
 	AxisIndicator::GetInstance()->SetTargetViewProjection(&viewProjection_);
+
+	enemy_ = new Enemy();
+
+	enemy_->Initialize(model_);
+
+	enemy_->SetPlayer(player_);
 
 
 }
@@ -65,6 +72,9 @@ void GameScene::Update() {
 		viewProjection_.UpdateMatrix();
 	}
 
+	if (enemy_) {
+		enemy_->Update();
+	}
 
 
 }
@@ -97,6 +107,9 @@ void GameScene::Draw() {
 	/// </summary>
 
 		player_->Draw(viewProjection_);
+		if (enemy_) {
+		    enemy_->Draw(viewProjection_);
+	    }
 
 	// 3Dオブジェクト描画後処理
 	Model::PostDraw();

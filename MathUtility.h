@@ -5,6 +5,8 @@
 
 Vector3 Add(const Vector3& v1, const Vector3& v2);
 
+Vector3 Subtruct(const Vector3& v1, const Vector3& v2);
+
 Matrix4x4 MakeScaleMatrix(const Vector3& scale);
 
 Matrix4x4 MakeRotateXMatrix(float radian);
