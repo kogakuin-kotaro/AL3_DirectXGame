@@ -21,14 +21,14 @@ void Player::Initialize(Model* model, uint32_t textureHandle,Vector3 &position) 
 
 	worldTransform3DReticle_.Initialize();
 
-	uint32_t textureReticle = TextureManager::Load("./Resources/target.png");
+	uint32_t textureReticle = TextureManager::Load("target.png");
 	sprite2DReticle_ = Sprite::Create(
 	    textureReticle,
-	    {worldTransform3DReticle_.translation_.x, worldTransform3DReticle_.translation_.y},
+	    {640.0f, 320.0f},
 	    {1, 1, 1, 1}, {0.5f, 0.5f});
 };
 
-void Player::Update(const ViewProjection& viewProjection) { 
+void Player::Update(const ViewProjection& viewProjection) {
 
 	//デスフラグの立った弾を削除
 	bullets_.remove_if([](PlayerBullet* bullet) {
@@ -64,7 +64,6 @@ void Player::Update(const ViewProjection& viewProjection) {
 	//座標移動（ベクトルの加算）
 	worldTransform_.translation_ = Add(worldTransform_.translation_, move);
 
-
 	//回転
 	Rotate();
 
@@ -86,30 +85,33 @@ void Player::Update(const ViewProjection& viewProjection) {
 	worldTransform_.translation_.y = min(worldTransform_.translation_.y, +kMoveLimitY);
 
 	//自機のワールド座標から3Dレティクルのワールド座標を計算
-	const float kDistancePlayerTo3DReticle = 50.0f;
+	{
+		const float kDistancePlayerTo3DReticle = 50.0f;
 
-	Vector3 offset = {0.0f, 0.0f, 1.0f};
+		Vector3 offset = {0.0f, 0.0f, 1.0f};
 
-	offset = Multiply(offset, worldTransform_.translation_);
+		offset = TransformNormal(offset, worldTransform_.matWorld_);
 
-	offset = Multiply(kDistancePlayerTo3DReticle, Normalize(offset));
+		offset = Multiply(kDistancePlayerTo3DReticle, Normalize(offset));
 
-	worldTransform3DReticle_.translation_ = Add(worldTransform3DReticle_.translation_, offset);
-	worldTransform3DReticle_.UpdateMatrix();
+		worldTransform3DReticle_.translation_ = Add(worldTransform_.translation_, offset);
+		worldTransform3DReticle_.UpdateMatrix();
+	
+	}
+	// 3Dレティクルのワールド座標から2Dレティクルのスクリーン座標を計算
+	{
+		Vector3 positionReticle = worldTransform3DReticle_.translation_;		
 
-	//3Dレティクルのワールド座標から2Dレティクルのスクリーン座標を計算
-	Vector3 positionReticle = worldTransform3DReticle_.translation_;
+		Matrix4x4 matViewport =
+		    MakeViewportMatrix(0, 0, WinApp::kWindowWidth, WinApp::kWindowHeight, 0, 1);
 
-	Matrix4x4 matViewport =
-	    MakeViewportMatrix(0, 0, WinApp::kWindowWidth, WinApp::kWindowHeight, 0, 1);
+		Matrix4x4 matViewProjectionViewport =
+		    Multiply(Multiply(viewProjection.matView, viewProjection.matProjection), matViewport);
 
-	Matrix4x4 matViewProjectionViewport =
-	    Multiply(viewProjection.matView, Multiply(viewProjection.matProjection, matViewport));
+		positionReticle = Transform(positionReticle, matViewProjectionViewport);
 
-	positionReticle = Transform(positionReticle, matViewProjectionViewport);
-
-	sprite2DReticle_->SetPosition(Vector2(positionReticle.x, positionReticle.y));
-
+		sprite2DReticle_->SetPosition(Vector2(positionReticle.x, positionReticle.y));
+	}
 	//行列更新
 	worldTransform_.UpdateMatrix(); 
 
@@ -175,7 +177,7 @@ Vector3 Player::GetWorldPosition() {
 
 void Player::OnCollision() {}
 
-void Player::DrawUI() {}
+void Player::DrawUI() { sprite2DReticle_->Draw(); }
 
 
 
