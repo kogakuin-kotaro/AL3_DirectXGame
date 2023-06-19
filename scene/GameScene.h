@@ -13,6 +13,7 @@
 #include "Enemy.h"
 #include "Skydome.h"
 #include "RailCamera.h"
+#include <sstream>
 
 
 /// <summary>
@@ -51,6 +52,35 @@ public: // メンバ関数
 	/// </summary>
 	void CheckAllCollisions();
 
+	/// <summary>
+	/// 敵を追加する
+	/// </summary>
+	/// <param name = "enemy">敵</param>
+	void AddEnemy(const Vector3& pos);
+
+/// <summary>
+/// 敵弾を追加する
+/// </summary>
+/// <param name = "enemyBullet">敵弾</param>
+	void AddEnemyBullet(EnemyBullet* enemyBullet);
+
+	/// <summary>
+	/// 敵発生データの読み込み
+	/// </summary>
+	void LoadEnemyPopData();
+
+	/// <summary>
+	/// 敵発生コマンドの更新
+	/// </summary>
+	void UpdateEnemyPopCommands();
+
+	const std::list<Enemy*>& GetEnemys() const { return enemys_; }
+
+	const std::list<EnemyBullet*>& GetEnemyBullets() const { return enemyBullets_; }
+
+
+
+
 private: // メンバ変数
 	DirectXCommon* dxCommon_ = nullptr;
 	Input* input_ = nullptr;
@@ -79,7 +109,10 @@ private: // メンバ変数
 	DebugCamera* debugCamera_ = nullptr;
 
 	//敵
-	Enemy* enemy_ = nullptr;
+	std::list<Enemy*> enemys_;
+
+	//敵弾
+	std::list<EnemyBullet*> enemyBullets_;
 
 	//天球
 	Skydome* skydome_ = nullptr;
@@ -89,4 +122,13 @@ private: // メンバ変数
 
 	//レールカメラ
 	RailCamera* railCamera_ = nullptr;
+
+	//敵発生コマンド
+	std::stringstream enemyPopCommands;
+
+	//待機フラグ
+	bool waitFlag_ = false;
+
+	//待機タイマー
+	int32_t waitTimer_;
 };
