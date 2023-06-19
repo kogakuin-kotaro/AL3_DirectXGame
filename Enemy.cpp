@@ -2,16 +2,17 @@
 #include <cassert>
 #include "MathUtility.h"
 #include "Player.h"
+#include "GameScene.h"
 
 Enemy::~Enemy() {
 	
-	for (EnemyBullet* bullet : bullets_) {
-		delete bullet;
-	}
+	//for (EnemyBullet* bullet : bullets_) {
+	//	delete bullet;
+	//}
 	
 }
 
-void Enemy::Initialize(Model* model) {
+void Enemy::Initialize(Model* model,const Vector3& position) {
 	assert(model);
 
 	model_ = model;
@@ -19,7 +20,7 @@ void Enemy::Initialize(Model* model) {
 	textureHandle_ = TextureManager::Load("uvChecker.png");
 
 	worldTransform_.Initialize();
-	worldTransform_.translation_ = {10.0f, 0.0f, 100.0f};
+	worldTransform_.translation_ = position;
 
 	ApproachInitialize();
 }
@@ -27,18 +28,18 @@ void Enemy::Initialize(Model* model) {
 void Enemy::Update() {
 
 	//デスフラグの立った弾を削除
-	bullets_.remove_if([](EnemyBullet* bullet) {
-		if (bullet->IsDead()) {
-			delete bullet;
-			return true;
-		}
-		return false;
-	});
+	//enemyBullets_.remove_if([](EnemyBullet* bullet) {
+	//	if (bullet->IsDead()) {
+	//		delete bullet;
+	//		return true;
+	//	}
+	//	return false;
+	//});
 
 	    //弾更新
-	for (EnemyBullet* bullet : bullets_) {
-		    bullet->Update();
-	}
+	//for (EnemyBullet* bullet : bullets_) {
+	//	    bullet->Update();
+	//}
 
 	velocity_ = TransformNormal(velocity_, worldTransform_.matWorld_);
 
@@ -63,9 +64,9 @@ void Enemy::Update() {
 void Enemy::Draw(ViewProjection& viewProjection) {
 	model_->Draw(worldTransform_, viewProjection, textureHandle_);
 
-	for (EnemyBullet* bullet : bullets_) {
-	bullet->Draw(viewProjection);
-	}
+	//for (EnemyBullet* bullet : bullets_) {
+	//bullet->Draw(viewProjection);
+	//}
 }
 
 void Enemy::ApproachUpdate() {
@@ -112,10 +113,14 @@ void Enemy::Fire() {
 		velocity = TransformNormal(velocity, worldTransform_.matWorld_);
 
 	EnemyBullet* newBullet = new EnemyBullet();
+
+	gameScene_->AddEnemyBullet(newBullet);
+
 	newBullet->Initialize(model_, worldTransform_.translation_, velocity);
+	
 
-	bullets_.push_back(newBullet);
-
+	//enemyBullets_.push_back(newBullet);
+	
 
 }
 
@@ -134,4 +139,4 @@ Vector3 Enemy::GetWorldPosition() {
 	return worldPos;
 }
 
-void Enemy::OnCollision() {}
+void Enemy::OnCollision() { isDead_ = true; }

@@ -9,14 +9,18 @@
 
 class Player;
 
+class GameScene;
+
 class Enemy {
 public:
 
 	~Enemy();
 
-	void Initialize(Model* model);
+	void Initialize(Model* model, const Vector3& position);
 	void Update();
 	void Draw(ViewProjection& viewProjection);
+
+	bool IsDead() const { return isDead_; }
 
 	void ApproachUpdate();
 	void LeaveUpdate();
@@ -34,8 +38,10 @@ public:
 	//衝突を検出したら呼び出されるコールバック関数
 	void OnCollision();
 
+	void SetGameScene(GameScene* gameScene) { gameScene_ = gameScene; }
+
 	//弾リストを取得
-	const std::list<EnemyBullet*>& GetBullets() const { return bullets_; }
+	//const std::list<EnemyBullet*>& GetBullets() const { return enemyBullets_; }
 
 	const float Range = 2.0f;
 
@@ -55,11 +61,15 @@ private:
 
 	Phase phase_ = Phase::Approach;
 
-	std::list<EnemyBullet*> bullets_;
+	bool isDead_ = false;
+
+	//std::list<EnemyBullet*> enemyBullets_;
 
 	//発射タイマー
 	int32_t fireTimer = 0;
 
 	Player* player_ = nullptr;
+
+	GameScene* gameScene_ = nullptr;
 
 };

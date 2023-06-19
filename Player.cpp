@@ -2,12 +2,13 @@
 #include <cassert>
 #include "MathUtility.h"
 #include "ImGuiManager.h"
-
+#include "GameScene.h"
 
 Player::~Player() {
 	for (PlayerBullet* bullet : bullets_) {
 		delete bullet;
 	}
+	delete sprite2DReticle_;
 }
 
 void Player::Initialize(Model* model, uint32_t textureHandle,Vector3 &position) {
@@ -17,9 +18,17 @@ void Player::Initialize(Model* model, uint32_t textureHandle,Vector3 &position) 
 	worldTransform_.Initialize();
 	input_ = Input::GetInstance();
 	worldTransform_.translation_ = Add(worldTransform_.translation_, position);
+
+	worldTransform3DReticle_.Initialize();
+
+	uint32_t textureReticle = TextureManager::Load("./Resources/target.png");
+	sprite2DReticle_ = Sprite::Create(
+	    textureReticle,
+	    {worldTransform3DReticle_.translation_.x, worldTransform3DReticle_.translation_.y},
+	    {1, 1, 1, 1}, {0.5f, 0.5f});
 };
 
-void Player::Update() { 
+void Player::Update(const ViewProjection& viewProjection) { 
 
 	//デスフラグの立った弾を削除
 	bullets_.remove_if([](PlayerBullet* bullet) {
@@ -76,8 +85,34 @@ void Player::Update() {
 	worldTransform_.translation_.y = max(worldTransform_.translation_.y, -kMoveLimitY);
 	worldTransform_.translation_.y = min(worldTransform_.translation_.y, +kMoveLimitY);
 
+	//自機のワールド座標から3Dレティクルのワールド座標を計算
+	const float kDistancePlayerTo3DReticle = 50.0f;
+
+	Vector3 offset = {0.0f, 0.0f, 1.0f};
+
+	offset = Multiply(offset, worldTransform_.translation_);
+
+	offset = Multiply(kDistancePlayerTo3DReticle, Normalize(offset));
+
+	worldTransform3DReticle_.translation_ = Add(worldTransform3DReticle_.translation_, offset);
+	worldTransform3DReticle_.UpdateMatrix();
+
+	//3Dレティクルのワールド座標から2Dレティクルのスクリーン座標を計算
+	Vector3 positionReticle = worldTransform3DReticle_.translation_;
+
+	Matrix4x4 matViewport =
+	    MakeViewportMatrix(0, 0, WinApp::kWindowWidth, WinApp::kWindowHeight, 0, 1);
+
+	Matrix4x4 matViewProjectionViewport =
+	    Multiply(viewProjection.matView, Multiply(viewProjection.matProjection, matViewport));
+
+	positionReticle = Transform(positionReticle, matViewProjectionViewport);
+
+	sprite2DReticle_->SetPosition(Vector2(positionReticle.x, positionReticle.y));
+
 	//行列更新
 	worldTransform_.UpdateMatrix(); 
+
 
 	//debug
 	ImGui::Begin("PlayerDebug");
@@ -96,6 +131,8 @@ void Player::Draw(ViewProjection& viewProjection) {
 	for (PlayerBullet* bullet : bullets_) {
 		bullet->Draw(viewProjection);
 	}
+
+	model_->Draw(worldTransform3DReticle_, viewProjection, textureHandle_);
 }
 
 void Player::Rotate() {
@@ -113,6 +150,9 @@ void Player::Attack() {
 	if (input_->TriggerKey(DIK_SPACE)) {
 		const float kBulletSpeed = 1.0f;
 		Vector3 velocity(0, 0, kBulletSpeed);
+
+		velocity = Subtruct(worldTransform3DReticle_.translation_, worldTransform_.translation_);
+		velocity = Multiply(kBulletSpeed, Normalize(velocity));
 
 		velocity = TransformNormal(velocity, worldTransform_.matWorld_);
 
@@ -134,6 +174,8 @@ Vector3 Player::GetWorldPosition() {
 }
 
 void Player::OnCollision() {}
+
+void Player::DrawUI() {}
 
 
 

@@ -4,6 +4,10 @@
 #include "Input.h"
 #include "PlayerBullet.h"
 #include <list>
+#include "Sprite.h"
+#include "ViewProjection.h"
+
+class Gamescene;
 
 /// <summary>
 /// 自キャラ
@@ -17,7 +21,7 @@ class Player {
 		~Player();
 
 		void Initialize(Model* model, uint32_t textureHandle,Vector3& position);
-	    void Update();
+	    void Update(const ViewProjection& viewProjection);
 	    void Draw(ViewProjection& viewProjection);
 
 		void Rotate();
@@ -37,6 +41,7 @@ class Player {
 
 		void SetParent(const WorldTransform* parent) { worldTransform_.parent_ = parent; };
 
+		void DrawUI();
 
 	private:
 	    WorldTransform worldTransform_;
@@ -46,4 +51,9 @@ class Player {
 		Input* input_ = nullptr;
 
 	    std::list<PlayerBullet*> bullets_;
+
+		WorldTransform worldTransform3DReticle_;
+
+		Sprite* sprite2DReticle_ = nullptr;
+
 };
