@@ -3,6 +3,8 @@
 #include "WorldTransform.h"
 #include "ViewProjection.h"
 
+
+
 /// <summary>
 /// レールカメラ
 /// </summary>
@@ -19,11 +21,20 @@ public:
 	const ViewProjection& GetViewProjection() { return viewProjection_; }
 
 	WorldTransform& GetWorldTransform() { return worldTransform_; };
+	Vector3& GetRotation() { return worldTransform_.rotation_; }
 
 
-
-		private:
+	private:
 	WorldTransform worldTransform_;
 	Model* model_ = nullptr;
 	ViewProjection viewProjection_;
+
+	
+	const float kRotLimit_ = 0.01f;
+	float kRotParam_ = 0.0f;
+	float kRotSpeed_;
+	const int kRotTimerMax_ = 600;
+	int rotTimer_ = 0;
+	
+
 };

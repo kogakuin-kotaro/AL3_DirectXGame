@@ -1,11 +1,10 @@
 #pragma once
 #include "Model.h"
 #include "WorldTransform.h"
+#include "Sprite.h"
 
 #include "EnemyBullet.h"
 #include <list>
-
-
 
 class Player;
 
@@ -16,7 +15,11 @@ public:
 
 	~Enemy();
 
-	void Initialize(Model* model, const Vector3& position);
+	void Initialize(
+	    Model* model1, Model* model2, Model* model3, Model* bulletmodel, 
+		Model* wiremodel1, Model* wiremodel2, Model* wirebulletmodel, 
+		const Vector3& position,
+	    const int& enemyNum);
 	void Update();
 	void Draw(ViewProjection& viewProjection);
 
@@ -27,7 +30,7 @@ public:
 
 	void Fire();
 
-	static const int kFireInterval = 60;
+	static const int kFireInterval = 70;
 
 	void ApproachInitialize();
 
@@ -35,8 +38,16 @@ public:
 
 	Vector3 GetWorldPosition();
 
+	Vector3 GetScreenPosition(const ViewProjection& viewProjection);
+
+	bool GetisRock() { return isRockon_; }
+
 	//衝突を検出したら呼び出されるコールバック関数
 	void OnCollision();
+
+	void SetisRock(bool isRock) { isRockon_ = isRock; }
+
+	void SetParent(const WorldTransform* parent) { worldTransform_.parent_ = parent; };
 
 	void SetGameScene(GameScene* gameScene) { gameScene_ = gameScene; }
 
@@ -49,18 +60,34 @@ public:
 private:
 
 	WorldTransform worldTransform_;
-	Model* model_ = nullptr;
-	uint32_t textureHandle_ = 0u;
+	Model* enemy1model_ = nullptr;
+	Model* enemy2model_ = nullptr;
+	Model* enemy3model_ = nullptr;
+	Model* enemyBulletmodel_ = nullptr;
+	Model* wireEnemy1model_ = nullptr;
+	Model* wireEnemy2model_ = nullptr;
+	Model* wireEnemyBulletmodel_ = nullptr;
 
-	Vector3 velocity_ = {0, 0, -0.2f};
 
+
+	//初期速度
+	Vector3 velocity_ = {0, -1.0f, 0.0f};
+
+	//状態
 	enum class Phase {
 		Approach,
 		Leave,
 	};
 
+	//敵番号
+	int enemyNum_;
+
+	//初期状態
 	Phase phase_ = Phase::Approach;
 
+	bool isRockon_ = false;
+
+	//死亡判定
 	bool isDead_ = false;
 
 	//std::list<EnemyBullet*> enemyBullets_;

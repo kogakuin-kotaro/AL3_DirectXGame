@@ -54,9 +54,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="base\DirectXCommon.cpp">
       <Filter>ソース ファイル\base</Filter>
     </ClCompile>
@@ -92,6 +89,12 @@
     </ClCompile>
     <ClCompile Include="RailCamera.cpp">
       <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="Boss.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>ヘッダー ファイル\3d</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -198,6 +201,9 @@
       <Filter>ヘッダー ファイル\scene</Filter>
     </ClInclude>
     <ClInclude Include="RailCamera.h">
+      <Filter>ヘッダー ファイル\scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Boss.h">
       <Filter>ヘッダー ファイル\scene</Filter>
     </ClInclude>
   </ItemGroup>

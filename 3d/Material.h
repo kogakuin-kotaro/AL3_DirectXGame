@@ -95,7 +95,7 @@ private:
 		ambient_ = {0.3f, 0.3f, 0.3f};
 		diffuse_ = {0.0f, 0.0f, 0.0f};
 		specular_ = {0.0f, 0.0f, 0.0f};
-		alpha_ = 1.0f;
+		alpha_ = 0.5f;
 	}
 
 	/// <summary>

@@ -2,137 +2,122 @@
 #include <cassert>
 #include "MathUtility.h"
 #include "ImGuiManager.h"
+#include "Enemy.h"
 #include "GameScene.h"
 
 Player::~Player() {
-	for (PlayerBullet* bullet : bullets_) {
-		delete bullet;
-	}
-	delete sprite2DReticle_;
+	//for (PlayerBullet* bullet : bullets_) {
+	//	delete bullet;
+	//}
+	//delete sprite2DReticle_;
 }
 
-void Player::Initialize(Model* model, uint32_t textureHandle,Vector3 &position) {
+void Player::Initialize(Model* model, Model* bulletmodel, Vector3& position) {
 	assert(model);
 	model_ = model;
-	textureHandle_ = textureHandle;
+	playerBulletmodel_ = bulletmodel;
+	//textureHandle_ = textureHandle;
 	worldTransform_.Initialize();
 	input_ = Input::GetInstance();
 	worldTransform_.translation_ = Add(worldTransform_.translation_, position);
+	worldTransform_.scale_ = Multiply(worldTransform_.scale_, 2);
+
 
 	worldTransform3DReticle_.Initialize();
 
-	uint32_t textureReticle = TextureManager::Load("./Resources/target.png");
+	uint32_t textureReticle = TextureManager::Load("./Resources/Images/target.png");
 	sprite2DReticle_ = Sprite::Create(
 	    textureReticle,
-	    {worldTransform3DReticle_.translation_.x, worldTransform3DReticle_.translation_.y},
-	    {1, 1, 1, 1}, {0.5f, 0.5f});
+	    {640.0f, 320.0f},
+	    {1.0f, 0.0f, 0.0f, 0.0f}, {0.5f, 0.5f});
+
+		isHit_ = false;
+		isDead_ = false;
+
 };
 
-void Player::Update(const ViewProjection& viewProjection) { 
+void Player::Update(const ViewProjection& viewProjection) {
 
-	//デスフラグの立った弾を削除
-	bullets_.remove_if([](PlayerBullet* bullet) {
-		if (bullet->IsDead()) {
-			delete bullet;
-			return true;
-		}
-		return false;
-	});
-
-	//キャラクターの移動ベクトル
-	Vector3 move = {0, 0, 0};
 
 	//キャラクターの移動速さ
-	const float kCharacterSpead = 0.2f;
+	float kCharacterSpead = 0.4f;
 	worldTransform_.TransferMatrix();
-
-	//押した方向でベクトル変更
-	//左右
-	if (input_->PushKey(DIK_LEFT)) {
-		move.x -= kCharacterSpead;
-	} else if (input_->PushKey(DIK_RIGHT)) {
-		move.x += kCharacterSpead;
+	move_ = {0, 0, 0};
+	//ゲームパッド状態取得
+	if (Input::GetInstance()->GetJoystickState(0, joyState)) {
+		move_.x += (float)joyState.Gamepad.sThumbLX / SHRT_MAX * kCharacterSpead;
+		move_.y += (float)joyState.Gamepad.sThumbLY / SHRT_MAX * kCharacterSpead;
 	}
 
-	//上下
-	if (input_->PushKey(DIK_UP)) {
-		move.y += kCharacterSpead;
-	} else if (input_->PushKey(DIK_DOWN)) {
-		move.y -= kCharacterSpead;
-	}
+	if (isHit_ == false) {
+		//座標移動（ベクトルの加算）
+		worldTransform_.translation_ = Add(worldTransform_.translation_, move_);
 
-	//座標移動（ベクトルの加算）
-	worldTransform_.translation_ = Add(worldTransform_.translation_, move);
+		//回転
+		Rotate();
 
+		//攻撃
+		Attack();
+	} else {
+		worldTransform_.scale_ = scale_;
 
-	//回転
-	Rotate();
+		scale_.x -= 0.1f;
+		scale_.y -= 0.1f;
+		scale_.z -= 0.1f;
 
-	//攻撃
-	Attack();
+		if (scale_.x <= 0.0f && scale_.y <= 0.0f && scale_.z <= 0.0f) {
+			isHit_ = false;
+			isDead_ = true;
+		}
 
-	//弾更新
-	for (PlayerBullet* bullet : bullets_) {
-		bullet->Update();
-	}
+	};
+
 
 	//移動制限
-	const float kMoveLimitX = 34.0f;
-	const float kMoveLimitY = 18.0f;
+	const float kMoveLimitX = 18.0f;
+	const float kMoveLimitY = 10.0f;
 
 	worldTransform_.translation_.x = max(worldTransform_.translation_.x, -kMoveLimitX);
 	worldTransform_.translation_.x = min(worldTransform_.translation_.x, +kMoveLimitX);
 	worldTransform_.translation_.y = max(worldTransform_.translation_.y, -kMoveLimitY);
 	worldTransform_.translation_.y = min(worldTransform_.translation_.y, +kMoveLimitY);
 
-	//自機のワールド座標から3Dレティクルのワールド座標を計算
-	const float kDistancePlayerTo3DReticle = 50.0f;
 
-	Vector3 offset = {0.0f, 0.0f, 1.0f};
+	Vector2 spritePosition = sprite2DReticle_->GetPosition();
 
-	offset = Multiply(offset, worldTransform_.translation_);
+	if (Input::GetInstance()->GetJoystickState(0, joyState)) {
+		spritePosition.x += (float)joyState.Gamepad.sThumbRX / SHRT_MAX * 10.0f;
+		spritePosition.y -= (float)joyState.Gamepad.sThumbRY / SHRT_MAX * 10.0f;
 
-	offset = Multiply(kDistancePlayerTo3DReticle, Normalize(offset));
+		sprite2DReticle_->SetPosition(spritePosition);
+	}
 
-	worldTransform3DReticle_.translation_ = Add(worldTransform3DReticle_.translation_, offset);
-	worldTransform3DReticle_.UpdateMatrix();
+	CursorTo3DReticle(viewProjection, spritePosition);
 
-	//3Dレティクルのワールド座標から2Dレティクルのスクリーン座標を計算
-	Vector3 positionReticle = worldTransform3DReticle_.translation_;
-
-	Matrix4x4 matViewport =
-	    MakeViewportMatrix(0, 0, WinApp::kWindowWidth, WinApp::kWindowHeight, 0, 1);
-
-	Matrix4x4 matViewProjectionViewport =
-	    Multiply(viewProjection.matView, Multiply(viewProjection.matProjection, matViewport));
-
-	positionReticle = Transform(positionReticle, matViewProjectionViewport);
-
-	sprite2DReticle_->SetPosition(Vector2(positionReticle.x, positionReticle.y));
+	sprite2DReticle_->SetColor({1, 1, 1, 0.8f});
 
 	//行列更新
 	worldTransform_.UpdateMatrix(); 
 
 
-	//debug
-	ImGui::Begin("PlayerDebug");
-	ImGui::SliderFloat("playerX", &worldTransform_.translation_.x, -34.0f, 34.0f);
-	ImGui::SliderFloat("playerY", &worldTransform_.translation_.y, -18.0f, 18.0f);
-	ImGui::SliderFloat("playerZ", &worldTransform_.translation_.z, -20.0f, 20.0f);
-	ImGui::End();
+
 
 }
 
 void Player::Draw(ViewProjection& viewProjection) { 
 	//プレイヤー描画
-	model_->Draw(worldTransform_, viewProjection, textureHandle_);
-
-	//弾描画
-	for (PlayerBullet* bullet : bullets_) {
-		bullet->Draw(viewProjection);
+	if (isHit_ == false) {
+		model_->Draw(worldTransform_, viewProjection);
+	} else {
+		playerBulletmodel_->Draw(worldTransform_, viewProjection);
 	}
 
-	model_->Draw(worldTransform3DReticle_, viewProjection, textureHandle_);
+	//弾描画
+	//for (PlayerBullet* bullet : bullets_) {
+	//	bullet->Draw(viewProjection);
+	//}
+
+	//Reticlemodel_->Draw(worldTransform3DReticle_, viewProjection);
 }
 
 void Player::Rotate() {
@@ -147,19 +132,134 @@ void Player::Rotate() {
 }
 
 void Player::Attack() { 
-	if (input_->TriggerKey(DIK_SPACE)) {
-		const float kBulletSpeed = 1.0f;
+	
+
+	if (bulletTimer_ > 0) {
+		bulletTimer_--;
+	}
+
+	/*if (input_->PushKey(DIK_SPACE) && bulletTimer_ <= 0) */
+	if (!Input::GetInstance()->GetJoystickState(0, joyState)) {
+		return;
+	}
+
+	if (joyState.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER && bulletTimer_ <= 0) {
+		const float kBulletSpeed = 2.0f;
 		Vector3 velocity(0, 0, kBulletSpeed);
 
-		velocity = Subtruct(worldTransform3DReticle_.translation_, worldTransform_.translation_);
-		velocity = Multiply(kBulletSpeed, Normalize(velocity));
+		velocity = Subtruct(worldTransform3DReticle_.translation_, GetWorldPosition());
+		velocity = Multiply(Normalize(velocity), kBulletSpeed);
 
-		velocity = TransformNormal(velocity, worldTransform_.matWorld_);
+		//velocity = TransformNormal(velocity, worldTransform_.matWorld_);
 
 		PlayerBullet* newBullet = new PlayerBullet();
-		newBullet->Initialize(model_, GetWorldPosition(), velocity);
 
-		bullets_.push_back(newBullet);
+		gameScene_->AddPlayerBullet(newBullet);
+
+		gameScene_->ScoreSetter(1);
+
+		newBullet->Initialize(
+		    playerBulletmodel_, GetWorldPosition(), velocity);
+
+		//bullets_.push_back(newBullet);
+		bulletTimer_ = 5;
+	}
+}
+
+bool Player::Rockon(const Vector3& enemypos_,const Vector3& enemyWorldPos_) {
+	if (enemypos_.x < sprite2DReticle_->GetPosition().x + 20 &&
+	    enemypos_.x > sprite2DReticle_->GetPosition().x - 20 &&
+	    enemypos_.y < sprite2DReticle_->GetPosition().y + 20 &&
+	    enemypos_.y > sprite2DReticle_->GetPosition().y - 20 && enemyWorldPos_.z > 0.0f)
+	{
+
+		sprite2DReticle_->SetPosition({enemypos_.x, enemypos_.y});
+		sprite2DReticle_->SetColor({1, 0, 0, 0.8f});
+		return true;
+
+	} else {
+		return false;
+	}
+}
+
+void Player::WorldTo3DReticle() {
+	//自機のワールド座標から3Dレティクルのワールド座標を計算
+	{
+		const float kDistancePlayerTo3DReticle = 50.0f;
+
+		Vector3 offset = {0.0f, 0.0f, 1.0f};
+
+		offset = TransformNormal(offset, worldTransform_.matWorld_);
+
+		offset = Multiply(Normalize(offset), kDistancePlayerTo3DReticle);
+
+		worldTransform3DReticle_.translation_ =  offset;
+		worldTransform3DReticle_.TransferMatrix();
+		worldTransform3DReticle_.UpdateMatrix();
+	
+	}
+}
+
+void Player::ReticleTo2DReticle(const ViewProjection& viewProjection) {
+	// 3Dレティクルのワールド座標から2Dレティクルのスクリーン座標を計算
+	{
+		Vector3 positionReticle = worldTransform3DReticle_.translation_;
+
+		Matrix4x4 matViewport =
+		    MakeViewportMatrix(0, 0, WinApp::kWindowWidth, WinApp::kWindowHeight, 0, 1);
+
+		Matrix4x4 matViewProjectionViewport =
+		    Multiply(Multiply(viewProjection.matView, viewProjection.matProjection), matViewport);
+
+		positionReticle = Transform(positionReticle, matViewProjectionViewport);
+
+		sprite2DReticle_->SetPosition(Vector2(positionReticle.x, positionReticle.y));
+	}
+}
+
+void Player::CursorTo3DReticle(const ViewProjection& viewProjection, Vector2 spritePosition) {
+
+	//マウスカーソルのスクリーン座標からワールド座標を取得して3Dレティクルを配置
+	{
+
+		// GetCursorPos(&spritePosition);
+
+		// HWND hwnd = WinApp::GetInstance()->GetHwnd();
+		// ScreenToClient(hwnd, &spritePosition);
+
+		sprite2DReticle_->SetPosition({(float)spritePosition.x, (float)spritePosition.y});
+
+		Matrix4x4 matViewport =
+			MakeViewportMatrix(0, 0, WinApp::kWindowWidth, WinApp::kWindowHeight, 0, 1);
+
+		Matrix4x4 matVPV =
+			Multiply(Multiply(viewProjection.matView, viewProjection.matProjection), matViewport);
+
+		Matrix4x4 matInverseVPV = Inverce(matVPV);
+
+		// Multiply(matVPV, matInverseVPV);
+
+		Vector3 posNear = Vector3((float)spritePosition.x, (float)spritePosition.y, 0);
+		Vector3 posFar = Vector3((float)spritePosition.x, (float)spritePosition.y, 1);
+
+		posNear = Transform(posNear, matInverseVPV);
+		posFar = Transform(posFar, matInverseVPV);
+
+		Vector3 mouseDirection = Subtruct(posFar, posNear);
+		mouseDirection = Normalize(mouseDirection);
+
+		const float kDistanceTestObject = 100.0f;
+
+		worldTransform3DReticle_.translation_ = {
+			posNear.x + mouseDirection.x * kDistanceTestObject,
+			posNear.y + mouseDirection.y * kDistanceTestObject,
+			posNear.z + mouseDirection.z * kDistanceTestObject,
+		};
+
+		worldTransform3DReticle_.UpdateMatrix();
+		worldTransform3DReticle_.TransferMatrix();
+
+
 	}
 }
 
@@ -173,9 +273,33 @@ Vector3 Player::GetWorldPosition() {
 	return worldPos;
 }
 
-void Player::OnCollision() {}
+void Player::OnCollision() { 
+	if (!isHit_) {
+		gameScene_->FreezeTimeSetter(60);
+		scale_ = {10, 10, 10};
+	}
+	isHit_ = true;
+}
 
-void Player::DrawUI() {}
+void Player::DrawUI() { 
+	sprite2DReticle_->Draw();
+
+
+
+
+
+
+
+	//    Novice::DrawSprite(342, 670, numberTexHandle[digitNumber[0]], 1, 1, 0.0f, 0xFFFFFFFF);
+	//Novice::DrawSprite(383, 670, numberTexHandle[digitNumber[1]], 1, 1, 0.0f, 0xFFFFFFFF);
+	//Novice::DrawSprite(424, 670, numberTexHandle[digitNumber[2]], 1, 1, 0.0f, 0xFFFFFFFF);
+	//Novice::DrawSprite(465, 670, numberTexHandle[digitNumber[3]], 1, 1, 0.0f, 0xFFFFFFFF);
+	//Novice::DrawSprite(506, 670, numberTexHandle[digitNumber[4]], 1, 1, 0.0f, 0xFFFFFFFF);
+	//Novice::DrawSprite(547, 670, numberTexHandle[digitNumber[5]], 1, 1, 0.0f, 0xFFFFFFFF);
+	//Novice::DrawSprite(588, 670, numberTexHandle[digitNumber[6]], 1, 1, 0.0f, 0xFFFFFFFF);
+}
+
+
 
 
 

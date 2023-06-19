@@ -20,7 +20,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	// ゲームウィンドウの作成
 	win = WinApp::GetInstance();
-	win->CreateGameWindow(L"GC2B_03_キムラ_コタロウ_AL3");
+	win->CreateGameWindow(L"GC2B_03_キムラ_コタロウ_RE_SWARM");
 
 	// DirectX初期化処理
 	dxCommon = DirectXCommon::GetInstance();
@@ -92,8 +92,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// 描画終了
 		dxCommon->PostDraw();
 
-		//ゲームシーンの判定取得関数
-		gameScene->CheckAllCollisions();
 	}
 
 	// 各種解放

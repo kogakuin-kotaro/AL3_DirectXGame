@@ -7,7 +7,9 @@
 #include "Sprite.h"
 #include "ViewProjection.h"
 
-class Gamescene;
+class Enemy;
+
+class GameScene;
 
 /// <summary>
 /// 自キャラ
@@ -20,7 +22,7 @@ class Player {
 		/// </summary>
 		~Player();
 
-		void Initialize(Model* model, uint32_t textureHandle,Vector3& position);
+		void Initialize(Model* model, Model* bulletmodel, Vector3& position);
 	    void Update(const ViewProjection& viewProjection);
 	    void Draw(ViewProjection& viewProjection);
 
@@ -28,13 +30,27 @@ class Player {
 
 		void Attack();
 
+		bool Rockon(const Vector3& enemypos_, const Vector3& enemyWorldPos_);
+
+		void WorldTo3DReticle();
+	    void ReticleTo2DReticle(const ViewProjection& viewProjection);
+	    void CursorTo3DReticle(const ViewProjection& viewProjection, Vector2 spritePosition);
+
 		Vector3 GetWorldPosition();
+	    Vector3 GetRotation() { return worldTransform_.rotation_; }
+	    Vector3 GetMove() { return move_; }
+
+		bool IsDead() const { return isDead_; }
 
 		//衝突を検出したら呼び出されるコールバック関数
 	    void OnCollision();
 
+		void SetGameScene(GameScene* gameScene) { gameScene_ = gameScene; }
+	    void IncreaseZ(float v) { worldTransform_.translation_.z += v; }
+
+
 		//弾リストを取得
-		const std::list<PlayerBullet*>& GetBullets() const { return bullets_; }
+		//const std::list<PlayerBullet*>& GetBullets() const { return bullets_; }
 
 		//半径
 	    const float Range = 1.0f;
@@ -43,17 +59,40 @@ class Player {
 
 		void DrawUI();
 
+
+
 	private:
 	    WorldTransform worldTransform_;
 	    Model* model_ = nullptr;
+	    Model* playerBulletmodel_ = nullptr;
 	    uint32_t textureHandle_ = 0u;
 
 		Input* input_ = nullptr;
 
-	    std::list<PlayerBullet*> bullets_;
+	    //ゲームパッドの状態を得る変数
+	    XINPUT_STATE joyState;
+
+
+	    //std::list<PlayerBullet*> bullets_;
+	    Vector3 move_ = {0, 0, 0};
+	    Vector3 scale_ = {0, 0, 0};
+
+	    uint32_t bulletTimer_;
+
+		bool isHit_ = false;
+		bool isDead_ = false;
+
+
+
+
+
 
 		WorldTransform worldTransform3DReticle_;
 
 		Sprite* sprite2DReticle_ = nullptr;
+
+		Enemy* enemy_ = nullptr;
+
+		GameScene* gameScene_ = nullptr;
 
 };

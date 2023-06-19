@@ -3,6 +3,7 @@
 #include "MathUtility.h"
 #include "Player.h"
 #include "GameScene.h"
+#include "ImGuiManager.h"
 
 Enemy::~Enemy() {
 	
@@ -12,12 +13,27 @@ Enemy::~Enemy() {
 	
 }
 
-void Enemy::Initialize(Model* model,const Vector3& position) {
-	assert(model);
+void Enemy::Initialize(
+    Model* model1, Model* model2, Model* model3, Model* bulletmodel,
+	Model* wiremodel1,Model* wiremodel2, Model* wirebulletmodel,
+	const Vector3& position,
+    const int& enemyNum) {
+	assert(model1);
+	assert(model2);
+	assert(model3);
+	assert(bulletmodel);
+	assert(wiremodel1);
+	assert(wiremodel2);
+	assert(wirebulletmodel);
 
-	model_ = model;
-
-	textureHandle_ = TextureManager::Load("uvChecker.png");
+	enemy1model_ = model1;
+	enemy2model_ = model2;
+	enemy3model_ = model3;
+	enemyBulletmodel_ = bulletmodel;
+	wireEnemy1model_ = wiremodel1;
+	wireEnemy2model_ = wiremodel2;
+	wireEnemyBulletmodel_ = wirebulletmodel;
+	enemyNum_ = enemyNum;
 
 	worldTransform_.Initialize();
 	worldTransform_.translation_ = position;
@@ -46,10 +62,10 @@ void Enemy::Update() {
 	switch (phase_) {
 	case Phase::Approach:
 	
-
 		ApproachUpdate();
 
 		break;
+
 	case Phase::Leave:
 
 		LeaveUpdate();
@@ -59,10 +75,28 @@ void Enemy::Update() {
 
 
 	worldTransform_.UpdateMatrix();
+
+
+
 }
 
 void Enemy::Draw(ViewProjection& viewProjection) {
-	model_->Draw(worldTransform_, viewProjection, textureHandle_);
+	if (enemyNum_ == 1) {
+		if (GetWorldPosition().z >= 0) {
+			enemy1model_->Draw(worldTransform_, viewProjection);
+		} else {
+			wireEnemy1model_->Draw(worldTransform_, viewProjection);
+		}
+	} else if (enemyNum_ == 2) {
+		if (GetWorldPosition().z >= 0) {
+			enemy2model_->Draw(worldTransform_, viewProjection);
+		} else {
+			wireEnemy2model_->Draw(worldTransform_, viewProjection);
+		}
+	} else if (enemyNum_ == 3) {
+		enemy3model_->Draw(worldTransform_, viewProjection);
+	}
+
 
 	//for (EnemyBullet* bullet : bullets_) {
 	//bullet->Draw(viewProjection);
@@ -70,24 +104,43 @@ void Enemy::Draw(ViewProjection& viewProjection) {
 }
 
 void Enemy::ApproachUpdate() {
-	velocity_ = {0, 0, -0.2f};
 	worldTransform_.translation_ = Add(worldTransform_.translation_, velocity_);
 
 	--fireTimer;
-
-	if (fireTimer <= 0) {
-		Fire();
-		fireTimer = kFireInterval;
+	velocity_.y += 0.005f;
+	velocity_.z -= 0.006f;
+	if (enemyNum_ == 2) {
+		if (fireTimer <= 0) {
+			Fire();
+			fireTimer = kFireInterval;
+		}
 	}
 
+
 	if (worldTransform_.translation_.z < 0.0f) {
+		if (enemyNum_ != 3) {
+			fireTimer = kFireInterval;
+		} else {
+			Fire();
+		}
 		phase_ = Phase::Leave;
 	}
 }
 
 void Enemy::LeaveUpdate() {
-	velocity_ = {0.2f, 0.2f, 0.2f};
-	worldTransform_.translation_ = Add(worldTransform_.translation_, velocity_);
+	
+
+	if (enemyNum_ != 3) {
+		velocity_ = {0.0f, 0.0f, -1.0f};
+		worldTransform_.translation_ = Add(worldTransform_.translation_, velocity_);
+		--fireTimer;
+		if (fireTimer <= 0) {
+			isDead_ = true;
+		}
+	} else {
+		isDead_ = true;
+	}
+
 }
 
 void Enemy::Fire() {
@@ -110,13 +163,19 @@ void Enemy::Fire() {
 	//ベクトルの長さを、早さに合わせる
 	Vector3 velocity(kBulletSpeed * dir.x, kBulletSpeed * dir.y, kBulletSpeed * dir.z);
 
-		velocity = TransformNormal(velocity, worldTransform_.matWorld_);
+	velocity = TransformNormal(velocity, worldTransform_.matWorld_);
+	
+	if (enemyNum_ == 3) {
+		velocity = {0, 0, 0};
+	}
 
 	EnemyBullet* newBullet = new EnemyBullet();
 
 	gameScene_->AddEnemyBullet(newBullet);
 
-	newBullet->Initialize(model_, worldTransform_.translation_, velocity);
+	newBullet->Initialize(
+	    enemyBulletmodel_, wireEnemyBulletmodel_, enemy3model_, worldTransform_.translation_, velocity,
+	    enemyNum_, 0);
 	
 
 	//enemyBullets_.push_back(newBullet);
@@ -139,4 +198,26 @@ Vector3 Enemy::GetWorldPosition() {
 	return worldPos;
 }
 
-void Enemy::OnCollision() { isDead_ = true; }
+Vector3 Enemy::GetScreenPosition(const ViewProjection& viewProjection) {
+
+	Vector3 screenPosition = GetWorldPosition();
+
+	Matrix4x4 matViewport =
+	    MakeViewportMatrix(0, 0, WinApp::kWindowWidth, WinApp::kWindowHeight, 0, 1);
+
+	Matrix4x4 matViewProjectionViewport =
+	    Multiply(Multiply(viewProjection.matView, viewProjection.matProjection), matViewport);
+
+	screenPosition = Transform(screenPosition, matViewProjectionViewport);
+
+
+
+	
+	return screenPosition;
+}
+
+void Enemy::OnCollision() { 
+	isDead_ = true;
+	isRockon_ = false;
+	gameScene_->ScoreSetter(100);
+}
